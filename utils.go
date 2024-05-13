@@ -9,7 +9,7 @@ const hideCommand = "hide \"...assests mappához relatív elérés/../neve.bmp\"
 const revealCommand = "reveal \"...assests mappához relatív elérés/../neve.bmp\""
 
 func inputCheck() error {
-	if BITS_USED_FOR_ENCODE > 7 {
+	if BITS_USED_FOR_HIDE > 7 {
 		return fmt.Errorf("a képben való adatelrejtéshez legfeljebb 7 bit használható fel")
 	}
 

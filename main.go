@@ -8,9 +8,9 @@ import (
 )
 
 const HEADER_SIZE = 54
-const BITS_USED_FOR_ENCODE = 3
-const MAX_LENGTH_OF_WORD_IN_BYTES = 32
-const SECRETS_BIT_CLEAR byte = (0b11111111 >> BITS_USED_FOR_ENCODE) << BITS_USED_FOR_ENCODE
+const BITS_USED_FOR_HIDE = 3
+const MAX_LENGTH_OF_TEXT_IN_BYTES = 32
+const SECRETS_BIT_CLEAR byte = (0b11111111 >> BITS_USED_FOR_HIDE) << BITS_USED_FOR_HIDE
 
 func main() {
 	err := inputCheck()
@@ -74,16 +74,16 @@ func hide(picBytesParam []byte, text string) []byte {
 
 	// Előfeldolgozás, el kell rejteni, hogy milyen hosszú a szöveg
 	// Első szabadon felhasználható byte terület az 57.
-	for picIndex, textLengthOffset := 57, 0; picIndex < len(picBytes) && textLengthOffset < MAX_LENGTH_OF_WORD_IN_BYTES; picIndex, textLengthOffset = picIndex+4, textLengthOffset+(8-BITS_USED_FOR_ENCODE) {
+	for picIndex, textLengthOffset := 57, 0; picIndex < len(picBytes) && textLengthOffset < MAX_LENGTH_OF_TEXT_IN_BYTES; picIndex, textLengthOffset = picIndex+4, textLengthOffset+(8-BITS_USED_FOR_HIDE) {
 		picBytes[picIndex] |= byte(((textLength & (0b11111 << textLengthOffset)) >> textLengthOffset) << 3)
 	}
 
-	for picIndex = HEADER_SIZE; picIndex < len(picBytes) && textBits < len(textBytes)*8; picIndex++ {
+	for picIndex = HEADER_SIZE; picIndex < len(picBytes) && textBits < (len(textBytes)<<3); picIndex++ {
 		// Az elrejtéshez használt bitek kitakarítása
 		picBytes[picIndex] = (picBytes[picIndex] & SECRETS_BIT_CLEAR)
 		secretBits := byte(0)
 
-		for i := BITS_USED_FOR_ENCODE - 1; i >= 0 && textBits < len(textBytes)*8; i-- {
+		for i := BITS_USED_FOR_HIDE - 1; i >= 0 && textBits < (len(textBytes)<<3); i-- {
 			currentByteOffset := textBits - ((textBits >> 3) << 3)
 
 			secretBits |= ((textBytes[textBits>>3] << currentByteOffset) & 0b10000000) >> (7 - i) // A magas értékű bitek kerülnek először bele
@@ -103,7 +103,7 @@ func reveal(picBytesParam []byte) string {
 	textLength := 0
 
 	// Előfeldolgozás, meg kell tudni, hogy milyen hosszú a szöveg
-	for picIndex, wordLengthOffset := 57, 0; picIndex < len(picBytesParam) && wordLengthOffset < MAX_LENGTH_OF_WORD_IN_BYTES; picIndex, wordLengthOffset = picIndex+4, wordLengthOffset+(8-BITS_USED_FOR_ENCODE) {
+	for picIndex, wordLengthOffset := 57, 0; picIndex < len(picBytesParam) && wordLengthOffset < MAX_LENGTH_OF_TEXT_IN_BYTES; picIndex, wordLengthOffset = picIndex+4, wordLengthOffset+(8-BITS_USED_FOR_HIDE) {
 		textLength |= int(picBytesParam[picIndex]>>3) << wordLengthOffset
 	}
 
@@ -116,7 +116,7 @@ func reveal(picBytesParam []byte) string {
 		currentByteOffset := textBits - ((textBits >> 3) << 3)
 
 		// Kiszedett bitek hozzáadása egy ideiglenes byte változóhoz, majd a listához hozzáadni
-		bitShiftOffset := 8 - BITS_USED_FOR_ENCODE - currentByteOffset
+		bitShiftOffset := 8 - BITS_USED_FOR_HIDE - currentByteOffset
 		if bitShiftOffset > 0 {
 			tempByte |= secretBits << bitShiftOffset
 		} else {
@@ -129,7 +129,7 @@ func reveal(picBytesParam []byte) string {
 			}
 		}
 
-		textBits += BITS_USED_FOR_ENCODE
+		textBits += BITS_USED_FOR_HIDE
 	}
 
 	return textBuilder.String()
